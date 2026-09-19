@@ -7,7 +7,7 @@ This document outlines the step-by-step development phases, milestones, delivera
 ## 📊 Overall Progress & Milestones
 
 - [x] **Milestone 0: Environment Setup & Toolchain** (100%)
-- [ ] **Milestone 1: Flutter Foundation & Architecture Setup** (0%)
+- [x] **Milestone 1: Flutter Foundation & Architecture Setup** (100%)
 - [ ] **Milestone 2: Supabase Backend & Database Schema with RLS** (0%)
 - [ ] **Milestone 3: Authentication & Session Management** (0%)
 - [ ] **Milestone 4: Core Data Layer, Models & Repositories** (0%)
@@ -18,7 +18,7 @@ This document outlines the step-by-step development phases, milestones, delivera
 
 ---
 
-## 🚀 Phase 1: Flutter Foundation & Architecture Setup (Milestone 1)
+## 🚀 Phase 1: Flutter Foundation & Architecture Setup (Milestone 1) ✅ COMPLETE
 
 **Goal:** Establish a solid technical baseline: configure folder structure, define premium design system & theme tokens, configure GoRouter navigation, and initialize Riverpod state management foundation.
 
@@ -29,41 +29,62 @@ This document outlines the step-by-step development phases, milestones, delivera
 2. [x] **1.2 Core Dependencies & Configuration (`pubspec.yaml`)**:
    - State Management: `flutter_riverpod` (^2.6.1)
    - Navigation: `go_router` (^16.2.1)
-   - Typography & Icons: `google_fonts` (^6.3.2), `lucide_icons` (^0.257.0)
+   - Typography & Icons: `google_fonts` (^6.3.2), `lucide_icons_flutter` (^3.1.20)
    - Utilities & Storage: `intl` (^0.20.2), `flutter_secure_storage` (^9.2.4)
    - Verified via `flutter pub get` and `flutter analyze` (0 issues).
-3. [ ] **1.3 Design System & Theme Foundation**:
-   - `core/constants/app_colors.dart` (Semantic Green for Credit, Coral/Red for Expense, Dark/Light palettes, modern surface tokens).
-   - `core/constants/app_typography.dart` (Clean Google Fonts styles - e.g. Inter / Plus Jakarta Sans).
-   - `core/theme/app_theme.dart` (Light & Dark theme data with custom card, button, and input decorations).
-   - `core/widgets/` (Foundational atomic widgets: `AppCard`, `AppButton`, `AmountDisplay`).
-4. **1.4 Declarative Navigation & Shell (`go_router`)**:
-   - `app/app_router.dart`: Set up initial routes (`/splash`, `/login`, `/dashboard`, `/transactions`, `/reports`, `/profile`).
-   - Stateful shell route for bottom navigation bar.
-5. **1.5 Riverpod State Management Baseline**:
-   - `app/app.dart`: Wrap root with `ProviderScope`.
-   - Setup global providers for theme mode (Dark/Light) and basic app lifecycle state.
+3. [x] **1.3 Design System & Theme Foundation**:
+   - `core/theme/app_colors.dart` (Semantic Green for Credit, Coral/Red for Expense, Dark/Light palettes, surface & border tokens).
+   - `core/theme/app_typography.dart` (Google Fonts Inter styles with financial amount typography).
+   - `core/theme/app_theme.dart` (Complete Material 3 Light & Dark themes with Card, Input, Button, NavigationBar, and AppBar configs).
+   - `core/widgets/` (Atomic UI widgets: `AppCard`, `AppButton`, `AmountDisplay` with semantic currency formatting).
+4. [x] **1.4 Declarative Navigation & Shell (`go_router`)**:
+   - `app/app_shell.dart`: Implemented `AppShell` with `StatefulNavigationShell`, Material 3 `NavigationBar` (Home, Transactions, Reports, Profile), and global `+` Floating Action Button.
+   - `app/router.dart`: Configured `GoRouter` with `StatefulShellRoute.indexedStack` (preserving tab state across all 4 branches) and full-screen dialog route for `/add-transaction`.
+   - `features/*/presentation/`: Scaffolded minimal placeholder screens (`DashboardScreen`, `TransactionsScreen`, `ReportsScreen`, `ProfileScreen`, `AddTransactionScreen`).
+   - `app/app.dart`: Configured root `MaterialApp.router`.
+   - `lib/main.dart`: Wired up `ProviderScope` entry point.
+   - Verified via `flutter test` (all passed) and `flutter analyze` (0 issues).
+5. [x] **1.5 Riverpod State Management Baseline**:
+   - `lib/app/providers.dart`: Implemented global `ThemeModeNotifier` and `themeModeProvider`.
+   - `lib/app/app.dart`: Wired up `ConsumerWidget` with reactive `themeMode` consumption.
+   - `test/unit/theme_mode_notifier_test.dart`: Added unit tests for theme mode initialization, toggle, and explicit updates.
+   - Verified via `flutter test` (all 4 passed) and `flutter analyze` (0 issues).
 
 ---
 
-## 🗄️ Phase 2: Supabase Backend, Database Schema & RLS
+## 🗄️ Phase 2: Supabase Backend, Database Schema & RLS (Milestone 2) ✅ COMPLETE
 
-**Goal:** Create and configure the Supabase project, execute PostgreSQL schema migrations, establish Row Level Security (RLS) policies, and prepare database triggers.
+**Goal:** Author and apply reproducible SQL migrations, establish Base Audit entity triggers, enforce Row Level Security (RLS), configure automated onboarding seed data, and connect the Flutter client.
 
-### Key Tasks:
-- [ ] **2.1 Supabase Configuration**:
-  - Configure Supabase URL & Anon Key securely via environment configs (`.env` or dart defines).
-  - Initialize Supabase in `main.dart`.
-- [ ] **2.2 PostgreSQL Schema Execution**:
-  - `profiles` table (linked to `auth.users` via trigger on sign-up).
-  - `accounts` table (`id`, `user_id`, `name`, `type`, `opening_balance`, `is_active`).
-  - `categories` table (`id`, `user_id`, `name`, `type` [`EXPENSE`|`CREDIT`], `icon`, `color`, `is_active`).
-  - `transactions` table (`id`, `user_id`, `account_id`, `category_id`, `type`, `amount`, `description`, `transaction_date`, `payment_method`).
-- [ ] **2.3 Row Level Security (RLS) Policies**:
-  - Restrict `SELECT`, `INSERT`, `UPDATE`, `DELETE` to authenticated user matching `auth.uid() = user_id`.
-- [ ] **2.4 Default Data Seed**:
-  - Seed default categories on user profile creation (Food, Shopping, Travel, Bills, Rent, Salary, Freelance, etc.).
-  - Seed default account (Cash / Primary Bank).
+### Step-by-Step Sequence:
+1. [x] **2.1 Base Entity / Audit Design**:
+   - Standardized `created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`, `deleted_by` referencing `auth.users(id)`.
+   - Automated `handle_base_audit_fields()` trigger populating audit fields securely via `auth.uid()`.
+2. [x] **2.2 Initial PostgreSQL Migration (`001_initial_schema.sql`)**:
+   - `profiles`: 1:1 with `auth.users` (`full_name`, `email`, `avatar_url`, `currency_code`, `currency_symbol` + base audit).
+   - `accounts`: Multi-account support (`CASH`, `BANK`, `UPI`, `WALLET`, `SAVINGS`, `OTHER` + base audit).
+   - `categories`: Expense/Credit classification (`name`, `type`, `icon`, `color`, `is_active` + base audit).
+   - `transactions`: Core ledger (`amount > 0`, `type`, `account_id`, `category_id`, `transaction_date`, `payment_method` + base audit).
+   - Performance Indexes for tenant isolation and soft delete queries (`WHERE deleted_at IS NULL`).
+3. [x] **2.3 Row Level Security (RLS) Policies**:
+   - RLS enabled on all 4 tables with strict `auth.uid() = user_id` / `auth.uid() = id` policies across SELECT, INSERT, UPDATE.
+   - Client hard DELETE disabled to protect audit trail.
+4. [x] **2.4 Automated User Onboarding Trigger**:
+   - Trigger `trg_on_auth_user_created` on `auth.users` auto-creates profile and seeds 3 default accounts (Cash, Primary Bank, UPI) + 18 default categories (11 Expense, 7 Credit).
+5. [x] **2.5 Environment Configuration (`flutter_dotenv`)**:
+   - Added `flutter_dotenv` to `pubspec.yaml` and registered `.env` asset.
+   - Created `.env` (gitignored) and `.env.example` (tracked in git).
+   - Created typed configuration access in [lib/core/config/env.dart](file:///c:/src/expense_tracker/lib/core/config/env.dart).
+   - Loaded `.env` in `lib/main.dart` with `await dotenv.load(fileName: '.env')`.
+6. [x] **2.6 Supabase CLI Migration Tooling & Flutter Client**:
+   - Created [package.json](file:///c:/src/expense_tracker/package.json) with npm migration scripts (`db:push`, `db:push:dry`, `db:new`, `db:status`, `db:reset`, `db:link`, `db:login`).
+   - Initialized Supabase CLI config (`supabase/config.toml`).
+   - Added `supabase_flutter: ^2.17.2` to `pubspec.yaml`.
+   - Configured `Supabase.initialize()` in `lib/main.dart`.
+7. [x] **2.7 Database Migration Applied & Verified**:
+   - Pushed migration `001_initial_schema.sql` via `npm run db:push`.
+   - Verified local and remote migrations are 100% in sync (`npm run db:status`).
+   - Verified via `flutter test` (all 5 passed) and `flutter analyze` (0 issues).
 
 ---
 

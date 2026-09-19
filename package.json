@@ -1,0 +1,19 @@
+{
+  "name": "expense-tracker-app",
+  "version": "1.0.0",
+  "description": "Personal Expense Tracker database migrations and tooling",
+  "private": true,
+  "scripts": {
+    "db:init": "npx supabase init",
+    "db:login": "npx supabase login",
+    "db:link": "npx supabase link --project-ref szytuopieuuzvpttiypi",
+    "db:new": "npx supabase migration new",
+    "db:status": "npx supabase migration list",
+    "db:push:dry": "npx supabase db push --dry-run",
+    "db:push": "npx supabase db push",
+    "db:reset": "npx supabase db reset"
+  },
+  "devDependencies": {
+    "supabase": "^2.117.0"
+  }
+}

@@ -127,9 +127,14 @@ erDiagram
         text full_name
         text email
         text avatar_url
-        text currency "default 'INR'"
+        text currency_code "default 'INR'"
+        text currency_symbol "default '₹'"
+        uuid created_by FK "references auth.users(id)"
+        uuid updated_by FK "references auth.users(id)"
+        uuid deleted_by FK "references auth.users(id)"
         timestamptz created_at
         timestamptz updated_at
+        timestamptz deleted_at
     }
 
     ACCOUNTS {
@@ -139,8 +144,12 @@ erDiagram
         text type "e.g. CASH, BANK, UPI, WALLET"
         numeric opening_balance "default 0.00"
         boolean is_active "default true"
+        uuid created_by FK "references auth.users(id)"
+        uuid updated_by FK "references auth.users(id)"
+        uuid deleted_by FK "references auth.users(id)"
         timestamptz created_at
         timestamptz updated_at
+        timestamptz deleted_at
     }
 
     CATEGORIES {
@@ -151,8 +160,12 @@ erDiagram
         text icon "icon identifier"
         text color "hex color string"
         boolean is_active "default true"
+        uuid created_by FK "references auth.users(id)"
+        uuid updated_by FK "references auth.users(id)"
+        uuid deleted_by FK "references auth.users(id)"
         timestamptz created_at
         timestamptz updated_at
+        timestamptz deleted_at
     }
 
     TRANSACTIONS {
@@ -165,8 +178,12 @@ erDiagram
         text description "optional description"
         date transaction_date "default CURRENT_DATE"
         text payment_method "e.g. UPI, Card, Cash"
+        uuid created_by FK "references auth.users(id)"
+        uuid updated_by FK "references auth.users(id)"
+        uuid deleted_by FK "references auth.users(id)"
         timestamptz created_at
         timestamptz updated_at
+        timestamptz deleted_at
     }
 ```
 

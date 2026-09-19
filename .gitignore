@@ -25,6 +25,7 @@ migrate_working_dir/
 .env
 .env.*
 *.env
+!.env.example
 
 # Android Signing Keys & Keystores (CRITICAL)
 *.jks

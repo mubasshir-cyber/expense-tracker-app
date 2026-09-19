@@ -18,140 +18,95 @@ Personal finance management requires enterprise-grade security standards. The sy
 
 ## 2. PostgreSQL Row Level Security (RLS) Specification
 
-All tables containing user financial data have Row Level Security explicitly **ENABLED** (`ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;`).
+All tables containing user financial data have Row Level Security explicitly **ENABLED**.
+Hard `DELETE` permissions are intentionally **not granted** to authenticated client roles; deletion is performed strictly through soft-delete (`UPDATE ... SET deleted_at = NOW()`).
 
-Every query sent through the Supabase client attaches the user's JWT bearer token, resolving `auth.uid()` at the PostgreSQL engine level.
-
-### 2.1 `profiles` Security Policy
+### 2.1 `profiles` Security Policy (Owner: `id = auth.uid()`)
 ```sql
--- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Select policy (Users can only read their own profile)
-CREATE POLICY "Users can view own profile" 
-ON public.profiles 
-FOR SELECT 
-USING (auth.uid() = id);
+CREATE POLICY "profiles_select_own" ON public.profiles
+    FOR SELECT TO authenticated
+    USING (auth.uid() = id AND deleted_at IS NULL);
 
--- Insert policy (System trigger or authenticated user creates own profile)
-CREATE POLICY "Users can insert own profile" 
-ON public.profiles 
-FOR INSERT 
-WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = id);
 
--- Update policy (Users can only edit their own profile)
-CREATE POLICY "Users can update own profile" 
-ON public.profiles 
-FOR UPDATE 
-USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
 ```
 
-### 2.2 `accounts` Security Policy
+### 2.2 `accounts` Security Policy (Owner: `user_id = auth.uid()`)
 ```sql
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own accounts" 
-ON public.accounts 
-FOR SELECT 
-USING (auth.uid() = user_id);
+CREATE POLICY "accounts_select_own" ON public.accounts
+    FOR SELECT TO authenticated
+    USING (auth.uid() = user_id AND deleted_at IS NULL);
 
-CREATE POLICY "Users can create own accounts" 
-ON public.accounts 
-FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "accounts_insert_own" ON public.accounts
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own accounts" 
-ON public.accounts 
-FOR UPDATE 
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own accounts" 
-ON public.accounts 
-FOR DELETE 
-USING (auth.uid() = user_id);
+CREATE POLICY "accounts_update_own" ON public.accounts
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 ```
 
-### 2.3 `categories` Security Policy
+### 2.3 `categories` Security Policy (Owner: `user_id = auth.uid()`)
 ```sql
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own categories" 
-ON public.categories 
-FOR SELECT 
-USING (auth.uid() = user_id);
+CREATE POLICY "categories_select_own" ON public.categories
+    FOR SELECT TO authenticated
+    USING (auth.uid() = user_id AND deleted_at IS NULL);
 
-CREATE POLICY "Users can insert own categories" 
-ON public.categories 
-FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "categories_insert_own" ON public.categories
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own categories" 
-ON public.categories 
-FOR UPDATE 
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own categories" 
-ON public.categories 
-FOR DELETE 
-USING (auth.uid() = user_id);
+CREATE POLICY "categories_update_own" ON public.categories
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 ```
 
-### 2.4 `transactions` Security Policy
+### 2.4 `transactions` Security Policy (Owner: `user_id = auth.uid()`)
 ```sql
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own transactions" 
-ON public.transactions 
-FOR SELECT 
-USING (auth.uid() = user_id);
+CREATE POLICY "transactions_select_own" ON public.transactions
+    FOR SELECT TO authenticated
+    USING (auth.uid() = user_id AND deleted_at IS NULL);
 
-CREATE POLICY "Users can insert own transactions" 
-ON public.transactions 
-FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "transactions_insert_own" ON public.transactions
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own transactions" 
-ON public.transactions 
-FOR UPDATE 
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own transactions" 
-ON public.transactions 
-FOR DELETE 
-USING (auth.uid() = user_id);
+CREATE POLICY "transactions_update_own" ON public.transactions
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 ```
 
 ---
 
-## 3. Database Constraints & Data Integrity Safeguards
+## 3. Database Constraints & Composite Integrity Safeguards
 
-To prevent mathematical or referential anomalies:
-
-- **Strict Positive Amounts**:
-  ```sql
-  ALTER TABLE public.transactions 
-  ADD CONSTRAINT chk_transaction_amount_positive 
-  CHECK (amount > 0);
-  ```
-- **Transaction Types**:
-  ```sql
-  ALTER TABLE public.transactions 
-  ADD CONSTRAINT chk_transaction_type 
-  CHECK (type IN ('EXPENSE', 'CREDIT'));
-  ```
-- **Category Types**:
-  ```sql
-  ALTER TABLE public.categories 
-  ADD CONSTRAINT chk_category_type 
-  CHECK (type IN ('EXPENSE', 'CREDIT'));
-  ```
-- **Foreign Key Cascading Protection**:
-  - `transactions.account_id` references `accounts(id)` on delete **RESTRICT** (prevents deleting an account that has transaction history without user confirmation/cleanup).
-  - `transactions.category_id` references `categories(id)` on delete **RESTRICT** / **SET DEFAULT**.
+1. **Cross-User Ownership Protection (Composite Foreign Keys)**:
+   - `accounts` enforces `UNIQUE(id, user_id)`.
+   - `transactions` enforces `FOREIGN KEY (account_id, user_id) REFERENCES public.accounts(id, user_id)`: **Mathematically guarantees** that a user cannot attach a transaction to another user's account.
+2. **Category Ownership & Type Matching (Composite Foreign Key)**:
+   - `categories` enforces `UNIQUE(id, user_id, type)`.
+   - `transactions` enforces `FOREIGN KEY (category_id, user_id, type) REFERENCES public.categories(id, user_id, type)`: **Mathematically guarantees** that an Expense transaction can ONLY link to an Expense category owned by the same user (and Credit to Credit).
+3. **Strict Positive Amounts**:
+   - `CHECK (amount > 0)`.
+4. **Server-Managed Audit Immunity**:
+   - `handle_base_audit_fields()` trigger strictly overrides `created_by`, `updated_by`, and `deleted_by` from `auth.uid()` and preserves `created_at`/`created_by` across updates.
 
 ---
 
