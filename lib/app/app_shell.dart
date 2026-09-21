@@ -27,7 +27,6 @@ class AppShell extends StatelessWidget {
         onPressed: () => context.push('/add-transaction'),
         child: const Icon(LucideIcons.plus, size: 24),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.miniEndFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onDestinationSelected,

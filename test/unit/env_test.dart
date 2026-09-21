@@ -7,11 +7,15 @@ void main() {
     test('Reads Supabase environment variables from dotenv', () {
       dotenv.testLoad(fileInput: '''
 SUPABASE_URL=https://test-project.supabase.co
-SUPABASE_ANON_KEY=test-anon-key-12345
+SUPABASE_PUBLISHABLE_KEY=test-publishable-key-12345
 ''');
 
       expect(Env.supabaseUrl, equals('https://test-project.supabase.co'));
-      expect(Env.supabaseAnonKey, equals('test-anon-key-12345'));
+      expect(
+        Env.supabasePublishableKey,
+        equals('test-publishable-key-12345'),
+      );
+      expect(Env.supabaseAnonKey, equals('test-publishable-key-12345'));
     });
   });
 }

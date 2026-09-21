@@ -39,6 +39,8 @@ class AmountDisplay extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final isNegative = amount < 0;
+
     // Determine semantic color
     Color effectiveColor;
     if (customColor != null) {
@@ -46,6 +48,8 @@ class AmountDisplay extends StatelessWidget {
     } else if (isCredit == true) {
       effectiveColor = isDark ? const Color(0xFF34D399) : AppColors.credit;
     } else if (isExpense == true) {
+      effectiveColor = isDark ? const Color(0xFFF87171) : AppColors.expense;
+    } else if (isNegative) {
       effectiveColor = isDark ? const Color(0xFFF87171) : AppColors.expense;
     } else {
       effectiveColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
@@ -80,11 +84,13 @@ class AmountDisplay extends StatelessWidget {
     // Determine sign prefix
     String signPrefix = '';
     if (showSign) {
-      if (isCredit == true || amount > 0 && isExpense != true) {
+      if (isCredit == true || (amount > 0 && isExpense != true)) {
         signPrefix = '+ ';
-      } else if (isExpense == true || amount < 0) {
+      } else if (isExpense == true || isNegative) {
         signPrefix = '- ';
       }
+    } else if (isNegative) {
+      signPrefix = '- ';
     }
 
     final displayText = '$signPrefix$currencySymbol $formattedNumber';
