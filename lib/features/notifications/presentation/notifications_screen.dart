@@ -51,6 +51,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       case NotificationType.monthlySummary:
         context.push('/reports');
         break;
+      case NotificationType.debtDue:
+        final debtId = item.referenceId;
+        context.push(debtId != null ? '/debts/$debtId' : '/debts');
+        break;
+      case NotificationType.goalMilestone:
+        final goalId = item.referenceId;
+        context.push(goalId != null ? '/savings-goals/$goalId' : '/savings-goals');
+        break;
+      case NotificationType.khataDue:
+        final custId = item.referenceId;
+        context.push(custId != null ? '/khata/$custId' : '/khata');
+        break;
       case NotificationType.system:
         break;
     }
@@ -60,13 +72,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     switch (_selectedFilterIndex) {
       case 1: // Unread
         return list.where((n) => n.isUnread).toList();
-      case 2: // Budgets
+      case 2: // Alerts (Budgets, Spending, Monthly)
         return list
             .where((n) =>
                 n.type == NotificationType.budgetWarning ||
-                n.type == NotificationType.budgetExceeded)
+                n.type == NotificationType.budgetExceeded ||
+                n.type == NotificationType.spendingAlert ||
+                n.type == NotificationType.monthlySummary)
             .toList();
-      case 3: // Recurring
+      case 3: // Reminders (Recurring)
         return list
             .where((n) =>
                 n.type == NotificationType.recurringUpcoming ||
@@ -296,14 +310,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       ),
                       const SizedBox(width: 8),
                       FilterChip(
-                        label: const Text('Budgets'),
+                        label: const Text('Alerts'),
                         selected: _selectedFilterIndex == 2,
                         onSelected: (_) =>
                             setState(() => _selectedFilterIndex = 2),
                       ),
                       const SizedBox(width: 8),
                       FilterChip(
-                        label: const Text('Recurring Bills'),
+                        label: const Text('Reminders'),
                         selected: _selectedFilterIndex == 3,
                         onSelected: (_) =>
                             setState(() => _selectedFilterIndex = 3),

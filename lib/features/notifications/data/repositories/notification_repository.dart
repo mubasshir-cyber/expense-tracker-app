@@ -63,6 +63,7 @@ class NotificationRepository {
       'title': item.title,
       'body': item.body,
       'reference_id': item.referenceId,
+      'idempotency_key': item.idempotencyKey,
       'scheduled_at': item.scheduledAt?.toIso8601String(),
       'read_at': item.readAt?.toIso8601String(),
       'metadata': item.metadata,
@@ -80,29 +81,37 @@ class NotificationRepository {
     );
   }
 
-  /// Batch inserts notifications, avoiding duplicates for matching IDs.
+  /// Creates a notification idempotently.
+  /// If an alert with the same [idempotencyKey] exists for this user and is not deleted,
+  /// returns the existing notification without creating a duplicate.
+  Future<NotificationModel> createNotificationIdempotent(
+    NotificationModel item,
+  ) async {
+    if (item.idempotencyKey != null && item.idempotencyKey!.isNotEmpty) {
+      final existing = await _client
+          .from('notifications')
+          .select()
+          .eq('user_id', _userId)
+          .eq('idempotency_key', item.idempotencyKey!)
+          .isFilter('deleted_at', null)
+          .maybeSingle();
+
+      if (existing != null) {
+        return NotificationModel.fromMap(
+          Map<String, dynamic>.from(existing),
+        );
+      }
+    }
+
+    return createNotification(item);
+  }
+
+  /// Batch syncs alerts idempotently, preventing duplicate creation.
   Future<void> syncAlertNotifications(List<NotificationModel> alerts) async {
     if (alerts.isEmpty) return;
 
     for (final alert in alerts) {
-      // Check if an alert with same title and reference_id was already created today
-      final existing = await _client
-          .from('notifications')
-          .select('id')
-          .eq('user_id', _userId)
-          .eq('type', alert.type.value)
-          .eq('reference_id', alert.referenceId ?? '')
-          .gte(
-            'created_at',
-            DateTime(alert.createdAt.year, alert.createdAt.month, alert.createdAt.day)
-                .toIso8601String(),
-          )
-          .isFilter('deleted_at', null)
-          .maybeSingle();
-
-      if (existing == null) {
-        await createNotification(alert);
-      }
+      await createNotificationIdempotent(alert);
     }
   }
 

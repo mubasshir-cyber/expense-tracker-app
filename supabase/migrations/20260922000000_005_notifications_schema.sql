@@ -23,10 +23,16 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     scheduled_at TIMESTAMPTZ,
     read_at TIMESTAMPTZ,
     metadata JSONB DEFAULT '{}'::jsonb,
+    idempotency_key TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ
 );
+
+-- Unique index for idempotent alert generation
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_idempotency 
+    ON public.notifications (user_id, idempotency_key) 
+    WHERE deleted_at IS NULL AND idempotency_key IS NOT NULL;
 
 -- 2. Create notification_settings table
 CREATE TABLE IF NOT EXISTS public.notification_settings (

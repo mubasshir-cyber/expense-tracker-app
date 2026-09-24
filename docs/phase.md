@@ -15,10 +15,10 @@ This document outlines the step-by-step development phases, milestones, delivera
 - [x] **Phase 7: Budgets & Spending Limits** (100%) ✅
 - [x] **Phase 8: Recurring Transactions** (100%) 🔁
 - [x] **Phase 9: Smart Financial Notifications** (100%) 🔔
-- [ ] **Phase 10: Savings Goals** (Next) 💰
-- [ ] **Phase 11: Debt / Loan Tracker** (Planned) 💳
-- [ ] **Phase 12: Export & Import (CSV, PDF)** (Planned) 📤
-- [ ] **Phase 13: Dashboard Customization & Widget System** (Planned) 🎨
+- [x] **Phase 10: Savings Goals** (100%) 💰 ✅
+- [x] **Phase 11: Debt / Loan Tracker** (100%) 💳 ✅
+- [x] **Phase 12: Export & Import (CSV, PDF, ZIP)** (100%) 📤 ✅
+- [ ] **Phase 13: Dashboard Customization & Widget System** (Next) 🎨
 
 ---
 
@@ -425,54 +425,195 @@ ReportsScreen
 
 ## 🔔 Phase 9: Smart Financial Notifications ✅ COMPLETE
 
-**Goal:** Deliver proactive, intelligent financial alerts and reminders (budget thresholds, upcoming recurring bills, auto-recorded transactions, spending surge warnings) driven by pure domain rules with complete user preference toggles.
+**Goal:** Deliver proactive, intelligent financial alerts and bill reminders (budget threshold warnings, over-budget alerts, upcoming recurring bills, auto-created transaction confirmations, spending surges, and monthly financial summaries) driven by pure domain rules with deterministic alert idempotency and granular user preferences.
 
 ### 9.1 Core Principles & Architecture
-- **Strict Separation of Concerns**: `SmartAlertEngine` does NOT recalculate finance or schedule logic. It consumes `BudgetProgress` from `BudgetCalculationService`, `RecurringTransactionModel` from `RecurringScheduleService`, and `FinancialSummary` from `FinancialCalculationService`.
-- **Dynamic Alert Generation**: Alerts are produced deterministically based on live financial state and filtered by `NotificationSettingsModel`.
-- **Persistent Notifications & Status**: Notifications can be marked as read, cleared, or deleted.
-- **Interactive Notification Actions**: Tapping a notification navigates directly to the relevant screen (e.g. `/budgets`, `/recurring`, `/transactions`).
+- **Strict Separation of Concerns**: `SmartAlertEngine` does NOT duplicate financial calculations or schedule evaluations. It purely consumes domain results from `BudgetCalculationService` (`BudgetProgress`), `RecurringScheduleService` (`RecurringTransactionModel`), and `FinancialCalculationService` (`FinancialSummary`).
+- **Deterministic Alert Idempotency**: Repeated evaluations (e.g. app launches, screen refreshes, provider invalidations) produce identical deterministic keys and never generate duplicate notifications:
+  - Budget Warning: `BUDGET_WARNING:{budgetId}:{periodStart}:{periodEnd}`
+  - Budget Exceeded: `BUDGET_EXCEEDED:{budgetId}:{periodStart}:{periodEnd}`
+  - Recurring Upcoming: `RECURRING_UPCOMING:{recurringId}:{occurrenceDate}`
+  - Recurring Due: `RECURRING_DUE:{recurringId}:{occurrenceDate}`
+  - Recurring Completed: `RECURRING_COMPLETED:{recurringId}:{transactionId}`
+  - Spending Alert: `SPENDING_ALERT:{periodStart}:{periodEnd}:{alertType}`
+  - Monthly Summary: `MONTHLY_SUMMARY:{year}:{month}`
+- **Database Unique Constraint**: Unique partial index on `(user_id, idempotency_key) WHERE deleted_at IS NULL AND idempotency_key IS NOT NULL`.
+- **Persistent Notification Center**: Notifications support date grouping (Today, Yesterday, Month Year), type badges, unread dot indicators, dismiss-to-delete, mark-as-read on tap, mark all as read, and clear history.
+- **Contextual Deep Links**: Tapping notifications routes directly to `/budgets`, `/recurring`, `/reports`, or `/transactions`.
 
 ### 9.2 Deliverables Checklist
 1. [x] **9.2.1 Database Schema & Migration**:
-   - Migration `20260922000000_005_notifications_schema.sql` applied to remote Supabase DB.
-   - Created `notifications` table (`id`, `user_id`, `type`, `title`, `message`, `data`, `is_read`, `read_at`, `created_at`, `deleted_at`) with RLS (`auth.uid() = user_id`) and `handle_base_audit_fields()`.
-   - Created `notification_settings` table (`user_id`, `budget_alerts_enabled`, `recurring_reminders_enabled`, `daily_summary_enabled`, `spending_surge_enabled`, `created_at`, `updated_at`) with RLS.
+   - Migration `20260922000000_005_notifications_schema.sql` applied to Supabase database.
+   - `notifications` table (`id`, `user_id`, `type`, `title`, `body`, `reference_id`, `idempotency_key`, `scheduled_at`, `read_at`, `metadata`, `created_at`, `updated_at`, `deleted_at`) with RLS (`auth.uid() = user_id`), `handle_base_audit_fields()`, and unique idempotency index.
+   - `notification_settings` table (`id`, `user_id`, `budget_warning_enabled`, `budget_exceeded_enabled`, `recurring_upcoming_enabled`, `recurring_auto_created_enabled`, `spending_alerts_enabled`, `monthly_summary_enabled`, `created_at`, `updated_at`) with RLS.
 2. [x] **9.2.2 Domain Models & Smart Alert Engine**:
-   - `NotificationType` enum with icons, colors, and display labels.
-   - `NotificationModel` entity with JSON serialization, `copyWith`, and `markAsRead`.
-   - `NotificationSettingsModel` entity for user notification preferences.
-   - `SmartAlertEngine` evaluating budget warning/over-budget states, recurring reminders, auto-created notifications, and spending surges.
+   - `NotificationType` enum with DB serialization, labels, semantic icons, and theme-aware colors.
+   - `NotificationModel` immutable entity with `fromMap`, `toMap`, `copyWith`, `isRead`, `isUnread`, `markAsRead`, `markAsUnread`, and value equality.
+   - `NotificationSettingsModel` immutable preferences model with defaults, `fromMap`, `toMap`, `copyWith`, and value equality.
+   - `SmartAlertEngine` pure domain engine evaluating budget thresholds, over-budget states, upcoming recurring reminders, auto-created ledger confirmations, spending surge alerts, and monthly summaries.
 3. [x] **9.2.3 Data Repositories**:
-   - `NotificationRepository` (getNotifications, markAsRead, markAllAsRead, deleteNotification, clearAll).
-   - `NotificationSettingsRepository` (getSettings, updateSettings).
+   - `NotificationRepository` (`getNotifications`, `getUnreadCount`, `createNotification`, `createNotificationIdempotent`, `syncAlertNotifications`, `markAsRead`, `markAllAsRead`, `deleteNotification`, `clearAllNotifications`).
+   - `NotificationSettingsRepository` (`getSettings`, `saveSettings`).
 4. [x] **9.2.4 Riverpod State Management**:
-   - `notificationRepositoryProvider`, `notificationSettingsRepositoryProvider`.
+   - `notificationRepositoryProvider`, `notificationSettingsRepositoryProvider`, `smartAlertEngineProvider`.
    - `notificationsListProvider`, `unreadNotificationCountProvider`, `notificationSettingsProvider`.
-   - `notificationsControllerProvider`.
-5. [x] **9.2.5 UI & Widgets**:
-   - `NotificationsScreen`: Filter tabs (All, Unread), swipe-to-dismiss, mark-all-as-read, empty state, and deep link navigation.
-   - `NotificationSettingsScreen`: Toggle switches for Budget Alerts, Recurring Reminders, Daily Summaries, and Spending Surge alerts.
-   - `NotificationCard`: Type-based icon container, semantic badge colors, relative timestamp, read/unread status dot.
-   - `NotificationBadgeIcon`: Dashboard app bar bell icon with live unread count badge.
-6. [x] **9.2.6 Routing & Integration**:
-   - Registered `/notifications` and `/notification-settings` routes in GoRouter.
-   - Added Notifications tile and badge in `ProfileScreen` and bell icon in `DashboardScreen`.
-7. [x] **9.2.7 Automated Tests & Verification**:
-   - Unit tests for models, types, settings, and `SmartAlertEngine`.
+   - `notificationsControllerProvider` (`syncDomainAlerts`, `markAsRead`, `markAllAsRead`, `deleteNotification`, `clearAll`, `updateSettings`).
+5. [x] **9.2.5 UI & Presentation**:
+   - `NotificationsScreen` (`/notifications`): Filter chips (`[All] [Unread] [Alerts] [Reminders]`), date grouping, mark all read, clear all dialog, empty/loading/error states, and contextual deep links.
+   - `NotificationSettingsScreen` (`/notification-settings`): Categorized preference toggles (Budget Alerts, Recurring Payments, Spending & Trends).
+   - `NotificationCard`: Type-based icon badges, formatted relative timestamps, unread indicator, dismiss-to-delete.
+   - `NotificationBadgeIcon`: Dashboard AppBar bell icon with reactive unread counter badge.
+6. [x] **9.2.6 Routing & Navigation**:
+   - Registered `/notifications` and `/notification-settings` in GoRouter.
+   - Integrated into `DashboardScreen` AppBar and `ProfileScreen` menu options.
+7. [x] **9.2.7 Comprehensive Testing & Verification**:
+   - Unit tests for models, types, settings, and `SmartAlertEngine` (including repeated evaluation & idempotency tests).
+   - Data layer serialization & contract tests for `NotificationRepository` and `NotificationSettingsRepository`.
    - Widget tests for `NotificationsScreen`, `NotificationSettingsScreen`, and `NotificationBadgeIcon`.
-   - 260/260 tests passing (0 failures, 0 regressions).
+   - All 237 existing tests remain passing + meaningful Phase 9 tests.
    - `flutter analyze`: 0 errors, 0 warnings.
 
 ---
 
-## 💰 Phase 10: Savings Goals (Next)
+## 💰 Phase 10: Savings Goals ✅ COMPLETE
 
-**Goal:** Help users define, allocate money toward, and track progress for structured financial savings goals (e.g., Emergency Fund, Vacation, New Vehicle, Tech Upgrade).
+**Goal:** Help users define, allocate money toward, and track progress for structured financial savings goals (e.g., Emergency Fund, Vacation, New Vehicle, Tech Upgrade) with a dedicated allocation ledger, dynamic savings velocity projections, and milestone tracking.
 
-### Key Focus Areas:
-- **Goal Scope**: Target amount, target date, priority level, visual icon/color.
-- **Contribution Flow**: Allocate money from accounts into specific goal buckets with visual celebration animations.
-- **Projected Timeline**: Calculation of required monthly/weekly contribution to hit target by deadline.
+### 10.1 Core Principles & Architecture
+- **Internal Allocation Accounting**: Goal deposits and withdrawals are internal balance allocations and **MUST NOT** generate `EXPENSE` records in the `transactions` table.
+- **Ledger-Backed Balance**: Goal balances are derived directly from the immutable `goal_contributions` table ($\sum \text{contributions.amount}$).
+- **Withdrawal Guards**: Repositories strictly prevent withdrawals exceeding the current goal balance.
+- **Dynamic Projection Engine**: `SavingsGoalCalculationService` computes required monthly/weekly rates to hit target deadlines and tracks 25%, 50%, 75%, 100% milestone thresholds.
+
+### 10.2 Deliverables Checklist
+1. [x] **10.2.1 Database Schema & Migration**:
+   - Migration `20260924000000_006_savings_goals_schema.sql` applied to Supabase.
+   - `savings_goals` table with RLS (`auth.uid() = user_id`), `handle_base_audit_fields()`, composite FKs, and soft-delete.
+   - `goal_contributions` table with composite FK to `savings_goals` and `accounts`, and strict RLS.
+2. [x] **10.2.2 Domain Models & Calculation Service**:
+   - `SavingsGoalModel` with `savedPercentage`, `progressRatio`, `remainingAmount`, `isCompleted`, `isReached`, and serialization.
+   - `GoalContributionModel` with `isDeposit`, `isWithdrawal`, and serialization.
+   - `GoalMilestone` (25%, 50%, 75%, 100% milestone thresholds).
+   - `GoalProjection` (days remaining, required monthly/weekly savings rate, deadline status).
+   - `SavingsGoalCalculationService` (pure domain projections, milestones, and portfolio summary).
+3. [x] **10.2.3 Data Layer Repository**:
+   - `SavingsGoalRepository` supporting CRUD, soft delete, deposit/withdrawal contributions, withdrawal guard, and balance derivation.
+4. [x] **10.2.4 Riverpod State Management**:
+   - `savingsGoalRepositoryProvider`, `savingsGoalCalculationServiceProvider`.
+   - `allSavingsGoalsProvider`, `activeSavingsGoalsProvider`, `completedSavingsGoalsProvider`, `savingsGoalsSummaryProvider`.
+   - `goalDetailProvider`, `goalContributionsProvider`, `goalProjectionProvider`, `goalMilestonesProvider`.
+   - `savingsGoalControllerProvider`.
+5. [x] **10.2.5 UI & Presentation**:
+   - `SavingsGoalsScreen` (`/savings-goals`): Portfolio summary card, filter chips (Active, Reached, All), list of goals, FAB for new goals.
+   - `GoalDetailScreen` (`/savings-goals/:id`): Hero goal progress card, 25/50/75/100% milestone badges, required rate projection card, Add Money and Withdraw action buttons, full contribution history ledger.
+   - `AddEditGoalSheet`: Modal form for goal name, target amount, target date, icon, color, default account, category, notes.
+   - `DepositWithdrawSheet`: Modal for recording deposits or withdrawals with account selector, amount validator, date, and notes.
+   - `SavingsGoalCard`: Progress indicators, deadline countdown, amount saved vs target.
+   - `DashboardSavingsGoalsCard`: Integrated on Home Dashboard.
+6. [x] **10.2.6 Routing & Profile Integration**:
+   - Registered `/savings-goals` and `/savings-goals/:id` in GoRouter.
+   - Added Savings Goals tile in `ProfileScreen` under Data Management.
+7. [x] **10.2.7 Comprehensive Testing & Verification**:
+   - All 283 pre-existing tests remain passing.
+   - 23 new Phase 10 tests covering domain models, calculation service, repository contracts, and presentation screens.
+   - Total test suite: **306/306 passing**.
+   - `flutter analyze`: **0 issues found**.
+
+---
+
+## 💳 Phase 11: Debt / Loan Tracker ✅ COMPLETE
+
+**Goal:** Enable users to track money borrowed (debts / liabilities / `YOU_OWE`) and money lent (loans / receivables / `YOU_ARE_OWED`) with explicit principal/interest separation, percentage or fixed interest formulas, installment schedules, sequential payment allocations, and separate debt accounting.
+
+### 11.1 Core Principles & Architecture
+- **Directional Debt Types**: `YOU_OWE` (Liabilities / "You need to pay") and `YOU_ARE_OWED` (Assets / "You should receive").
+- **Principal & Interest Separation**:
+  - `principal_amount`
+  - `interest_type`: `NONE`, `PERCENTAGE`, `FIXED`
+  - `interest_rate`, `interest_amount`
+  - `total_repayment_amount` = `principal_amount + interest_amount`
+- **Debt Ledger Isolation**: Debts and repayments exist in a dedicated Debt Ledger (`debts`, `debt_installments`, `debt_repayments`) and **MUST NOT** generate ordinary `EXPENSE`/`INCOME` records in the `transactions` table, preventing double-counting in existing Reports and Budgets.
+- **Installment Schedule & Sequential Allocation**: `DebtCalculationService.allocateRepaymentToInstallments` allocates repayments sequentially across pending or partial installments.
+- **Overpayment Protection**: `DebtRepository.addRepayment` strictly throws `ArgumentError` if $\text{amount} > \text{debt.remainingAmount} + 0.01$.
+
+### 11.2 Deliverables Checklist
+1. [x] **11.2.1 Database Schema & Migration**:
+   - Migration `20260925000000_007_debts_and_loans_schema.sql` created and applied to Supabase database.
+   - `debts` table (`id`, `user_id`, `type`, `person_name`, `contact_number`, `principal_amount`, `interest_type`, `interest_rate`, `interest_amount`, `total_repayment_amount`, `due_date`, `status`, `account_id`, `notes`, `created_at`, `updated_at`, `deleted_at`) with composite FKs and RLS (`auth.uid() = user_id`).
+   - `debt_installments` table (`id`, `debt_id`, `user_id`, `installment_number`, `due_date`, `principal_due`, `interest_due`, `total_due`, `paid_amount`, `status`, `created_at`, `updated_at`, `deleted_at`) with composite FKs and RLS.
+   - `debt_repayments` table (`id`, `debt_id`, `installment_id`, `user_id`, `account_id`, `amount`, `repayment_date`, `notes`, `created_at`, `updated_at`, `deleted_at`) with composite FKs and RLS.
+2. [x] **11.2.2 Domain Models & Calculation Service**:
+   - `DebtType` (`YOU_OWE`, `YOU_ARE_OWED`), `InterestType` (`NONE`, `PERCENTAGE`, `FIXED`), `DebtStatus` (`ACTIVE`, `SETTLED`, `CANCELLED`), `InstallmentStatus` (`PENDING`, `PARTIAL`, `PAID`).
+   - `DebtModel`, `DebtInstallmentModel`, `DebtRepaymentModel`, `DebtSummary`.
+   - `DebtCalculationService` pure domain service for interest calculations, installment generation, sequential payment allocation, and portfolio summary.
+3. [x] **11.2.3 Data Layer Repository**:
+   - `DebtRepository` supporting CRUD, soft delete, installment creation, repayment recording, sequential allocation, and overpayment guards.
+4. [x] **11.2.4 Riverpod State Management**:
+   - `debtRepositoryProvider`, `debtCalculationServiceProvider`.
+   - `allDebtsProvider`, `youOweDebtsProvider`, `youAreOwedDebtsProvider`, `debtSummaryProvider`, `debtDetailProvider`, `debtControllerProvider`.
+5. [x] **11.2.5 UI & Presentation**:
+   - `DebtsScreen` (`/debts`): Summary banner (Net Position, You Are Owed, You Owe, Overdue count), filter tabs (Active, You Owe, You Are Owed, Settled), debt list cards, and FAB.
+   - `DebtDetailScreen` (`/debts/:id`): Overview card, remaining outstanding, principal & interest breakdown card, action button (Receive Payment / Record Repayment), installment schedule list, payment history ledger, edit and delete actions.
+   - `AddEditDebtSheet`: Form with live interest and total expected preview, installment count, account selector, and validation.
+   - `RecordRepaymentSheet`: Form for recording payments with outstanding balance card and overpayment validation.
+   - `DebtCard`: Progress indicators, interest badges, and overdue alerts.
+   - `DashboardDebtsCard`: Integrated into Home Dashboard.
+6. [x] **11.2.6 Routing & Profile Integration**:
+   - Registered `/debts` and `/debts/:id` in GoRouter.
+   - Added Debts & Loans tile under Data Management in `ProfileScreen`.
+7. [x] **11.2.7 Comprehensive Testing & Verification**:
+   - All 306 pre-existing tests remain passing.
+   - 26 new Phase 11 tests covering models, interest formulas, installment generation, sequential allocation, repository contracts, and presentation widgets.
+   - Total test suite: **332/332 passing (100% green)**.
+   - `flutter analyze`: **0 issues found**.
+
+---
+
+## 📤 Phase 12: Export & Import (CSV, PDF, ZIP) ✅ COMPLETE
+
+**Goal:** Enable users to export financial reports and transaction histories to RFC 4180 CSV, formatted multi-page PDF statements with custom business/personal headers & footers, and complete system backup ZIP archives. Allow users to import transaction data via CSV with column detection, duplicate warnings, interactive selection preview, and atomic commits.
+
+### 12.1 Core Principles & Architecture
+- **Strict Ledger Segregation**: Export files preserve distinct ledgers (`transactions.csv`, `savings_goals.csv` & `goal_contributions.csv`, `debts.csv` & `debt_repayments.csv`). Debt repayments and savings goal contributions are **never** commingled or converted into ordinary income/expense in reports or calculations.
+- **Date Range Presets**: 1 Week (7 days ending today), 1 Month (1st of month to today), 3 Months (2 months back to today), 1 Year (11 months back to today), and Custom date picker (`startDate <= endDate <= today`).
+- **Customizable PDF Header & Footer (`PdfReportConfig`)**: Header supports title, subtitle, user name, phone, email, and address. Footer supports custom note, timestamp, and `Page X of Y` page numbering.
+- **Full System Backup (.ZIP)**: Generates a compressed archive containing separate CSV files (`transactions.csv`, `accounts.csv`, `categories.csv`, `savings_goals.csv`, `goal_contributions.csv`, `debts.csv`, `debt_repayments.csv`).
+- **Transaction-Only CSV Import**: Automatically detects headers (`Date`, `Amount`, `Type`, `Category`, `Account`, `Description`), parses amounts/dates, resolves categories & accounts with user fallbacks, flags duplicates against existing transactions, and presents an interactive preview table with select/deselect toggles before committing to Supabase.
+
+### 12.2 Deliverables Checklist
+1. [x] **12.2.1 Domain Models**:
+   - `ExportDatePreset` with `calculateDateRange([asOfDate])`.
+   - `ExportDatasetType` (`transactions`, `savingsGoals`, `debtsAndLoans`, `fullBackup`).
+   - `ExportFormat` (`csv`, `pdf`).
+   - `PdfReportConfig` with customizable headers, footers, logo path.
+   - `ExportFilter` with immutable date range and dataset selection.
+   - `ImportPreviewRow` with validation errors, duplicate flag, and selection state.
+   - `ImportResult` with total parsed, imported, skipped, failed counts and error messages.
+2. [x] **12.2.2 Domain Services**:
+   - `CsvExportService`: RFC 4180 CSV builder, full backup ZIP generator, and sample CSV generator.
+   - `PdfExportService`: Multi-page PDF generator using `pdf` & `printing` with summary cards, transaction table, savings table, debts table, header, and dynamic footer.
+   - `CsvImportService`: Multi-format date & currency parser, column auto-detector, category/account resolver, and duplicate detector.
+3. [x] **12.2.3 Data Layer Repository**:
+   - `ExportImportRepository` connecting data repositories to export/import domain services and integrating `share_plus`, `path_provider`, and `file_picker`.
+4. [x] **12.2.4 Riverpod State Management**:
+   - `exportFilterProvider`, `pdfReportConfigProvider`, `exportControllerProvider`.
+   - `importControllerProvider` managing raw CSV, parsed preview rows, category/account fallbacks, and commit lifecycle.
+5. [x] **12.2.5 UI & Presentation**:
+   - `ExportScreen` (`/export`): Segmented format toggle (PDF vs CSV), dataset choice chips, horizontal date preset chips, period summary banner, PDF header customization accordion, and export & share button with loading feedback.
+   - `ImportScreen` (`/import`): Tap to pick file card, sample format dialog with clipboard copy, fallback account & category dropdowns, status badge chips, interactive preview card list with checkboxes, and commit import confirmation dialog.
+6. [x] **12.2.6 Routing & Profile Integration**:
+   - Registered `/export` and `/import` in `GoRouter`.
+   - Added Data Export & Backup menu tiles in `ProfileScreen`.
+7. [x] **12.2.7 Comprehensive Testing & Verification**:
+   - All 333 pre-existing tests remain passing.
+   - 20 new Phase 12 tests covering presets, CSV export, PDF export, CSV import, and widget screens.
+   - Total test suite: **353/353 passing (100% green)**.
+   - `flutter analyze`: **0 issues found**.
+
+---
+
+## 🎨 Phase 13: Dashboard Customization & Widget System (Next)
+
+**Goal:** Enable users to customize their dashboard layout, toggle widgets (Recent Transactions, Financial Summary, Spending by Category, Budgets Progress, Savings Goals, Debts Overview), and reorder cards.
 
 

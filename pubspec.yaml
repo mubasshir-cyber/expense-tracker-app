@@ -44,11 +44,21 @@ dependencies:
   # Utilities & Storage
   intl: ^0.20.2
   flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.4
   lucide_icons_flutter: ^3.1.20
   flutter_dotenv: ^5.2.1
   supabase_flutter: ^2.17.2
   fl_chart: ^0.70.2
   image_picker: ^1.1.2
+  csv: ^6.0.0
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
+  file_picker: ^8.1.7
+  archive: ^3.6.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +87,7 @@ flutter:
   # Assets
   assets:
     - .env
+    - assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

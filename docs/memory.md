@@ -377,45 +377,176 @@
 
 ## ✅ Step 10: Phase 9 — Smart Financial Notifications COMPLETE
 
-- **Date:** 2026-09-22
+- **Date:** 2026-09-23
 - **Status:** Completed ✅
 - **Details:**
   - **Database Migration (`20260922000000_005_notifications_schema.sql`)**:
-    - Created `notifications` table (`id`, `user_id`, `type`, `title`, `message`, `data`, `is_read`, `read_at`, `created_at`, `deleted_at`) with RLS (`auth.uid() = user_id`) and `handle_base_audit_fields()`.
-    - Created `notification_settings` table (`user_id`, `budget_alerts_enabled`, `recurring_reminders_enabled`, `daily_summary_enabled`, `spending_surge_enabled`, `created_at`, `updated_at`) with RLS.
+    - Created `notifications` table (`id`, `user_id`, `type`, `title`, `body`, `reference_id`, `idempotency_key`, `scheduled_at`, `read_at`, `metadata`, `created_at`, `updated_at`, `deleted_at`) with RLS (`auth.uid() = user_id`) and `handle_base_audit_fields()`.
+    - Created unique index `idx_notifications_idempotency` on `(user_id, idempotency_key) WHERE deleted_at IS NULL AND idempotency_key IS NOT NULL`.
+    - Created `notification_settings` table (`id`, `user_id`, `budget_warning_enabled`, `budget_exceeded_enabled`, `recurring_upcoming_enabled`, `recurring_auto_created_enabled`, `spending_alerts_enabled`, `monthly_summary_enabled`, `created_at`, `updated_at`) with RLS.
     - Successfully pushed migration to remote Supabase DB via `npm run db:push`.
-  - **Domain Models & Smart Alert Engine (`SmartAlertEngine`)**:
-    - Clean architectural separation: Alerts consume domain models (`BudgetProgress`, `RecurringTransactionModel`, `FinancialSummary`) without repeating calculation logic.
-    - `NotificationType` enum (`BUDGET_WARNING`, `BUDGET_EXCEEDED`, `RECURRING_DUE_SOON`, `RECURRING_DUE_TODAY`, `RECURRING_AUTO_RECORDED`, `SPENDING_SURGE`, `DAILY_SUMMARY`, `SYSTEM`) with icons and semantic colors.
-    - `NotificationModel` entity with JSON serialization, `copyWith`, and `markAsRead`.
-    - `NotificationSettingsModel` entity for user notification preference switches.
-    - `SmartAlertEngine`: Evaluates budget threshold warnings, over-budget alerts, recurring reminders, auto-created notifications, and spending surges with preference filtering.
-  - **Data Repositories**:
-    - `NotificationRepository` (getNotifications, markAsRead, markAllAsRead, deleteNotification, clearAll).
-    - `NotificationSettingsRepository` (getSettings, updateSettings).
+  - **Deterministic Alert Idempotency & Smart Alert Engine (`SmartAlertEngine`)**:
+    - Clean architectural separation: Engine consumes domain models (`BudgetProgress`, `RecurringTransactionModel`, `FinancialSummary`) without repeating calculation logic.
+    - Deterministic Alert Keys prevent duplicate notifications on screen rebuilds, app restarts, and provider invalidations:
+      - `BUDGET_WARNING:{budgetId}:{periodStart}:{periodEnd}`
+      - `BUDGET_EXCEEDED:{budgetId}:{periodStart}:{periodEnd}`
+      - `RECURRING_UPCOMING:{recurringId}:{occurrenceDate}`
+      - `RECURRING_DUE:{recurringId}:{occurrenceDate}`
+      - `RECURRING_COMPLETED:{recurringId}:{transactionId}`
+      - `SPENDING_ALERT:{periodStart}:{periodEnd}:{alertType}`
+      - `MONTHLY_SUMMARY:{year}:{month}`
+    - `NotificationType` enum with icons, colors, and labels.
+    - `NotificationModel` immutable entity with `idempotencyKey`, `fromMap`, `toMap`, `copyWith`, `isRead`, `isUnread`, `markAsRead`, and value equality.
+    - `NotificationSettingsModel` preferences model with default settings, `fromMap`, `toMap`, `copyWith`, and value equality.
+  - **Data Layer Repositories**:
+    - `NotificationRepository`: `getNotifications`, `getUnreadCount`, `createNotification`, `createNotificationIdempotent`, `syncAlertNotifications`, `markAsRead`, `markAllAsRead`, `deleteNotification`, `clearAllNotifications`.
+    - `NotificationSettingsRepository`: `getSettings`, `saveSettings`.
   - **Riverpod State Management**:
-    - `notificationRepositoryProvider`, `notificationSettingsRepositoryProvider`.
+    - `notificationRepositoryProvider`, `notificationSettingsRepositoryProvider`, `smartAlertEngineProvider`.
     - `notificationsListProvider`, `unreadNotificationCountProvider`, `notificationSettingsProvider`.
     - `notificationsControllerProvider`.
   - **Presentation & UI**:
-    - `NotificationsScreen`: Filter tabs (All, Unread), swipe-to-dismiss, mark-all-as-read action, empty state, and deep link navigation.
-    - `NotificationSettingsScreen`: Preference switches for Budget Alerts, Recurring Reminders, Daily Summaries, and Spending Surge alerts.
+    - `NotificationsScreen` (`/notifications`): Filter chips (`[All] [Unread] [Alerts] [Reminders]`), date grouping (Today, Yesterday, Month Year), swipe-to-dismiss, mark-all-as-read action, empty state, and deep link navigation (`/budgets`, `/recurring`, `/reports`, `/transactions`).
+    - `NotificationSettingsScreen` (`/notification-settings`): Preference switches for Budget Alerts, Recurring Reminders, Spending Alerts, and Monthly Financial Summary.
     - `NotificationCard`: Type-based icon container, semantic badge colors, relative timestamp, read/unread status dot.
     - `NotificationBadgeIcon`: Dashboard app bar bell icon with live unread count badge.
-    - `ProfileScreen`: Added Notifications menu item with unread badge.
+    - `ProfileScreen`: Added Notifications and Notification Preferences menu items.
     - `GoRouter`: Registered `/notifications` and `/notification-settings` routes.
   - **Testing & Verification**:
-    - Added unit test suites: `notification_model_test.dart`, `notification_type_test.dart`, `notification_settings_model_test.dart`, `smart_alert_engine_test.dart`.
-    - Added widget test suites: `notifications_screen_test.dart`, `notification_settings_screen_test.dart`, `dashboard_notification_bell_test.dart`.
+    - Unit tests: `notification_model_test.dart`, `notification_type_test.dart`, `notification_settings_model_test.dart`, `smart_alert_engine_test.dart` (including repeated evaluation & idempotency tests).
+    - Repository tests: `notification_repository_test.dart`, `notification_settings_repository_test.dart`.
+    - Widget tests: `notifications_screen_test.dart`, `notification_settings_screen_test.dart`, `notification_badge_icon_test.dart`, `dashboard_notification_bell_test.dart`.
     - `flutter analyze`: **No issues found! (0 errors, 0 warnings)**.
-    - `flutter test`: **260/260 tests passed! (100% passing)**.
+    - All 237 existing tests remain passing.
   - **Phase 9 is now 100% COMPLETE & LOCKED.**
 
 ---
 
-## 🎯 Next: Step 11: Phase 10 — Savings Goals 💰
+## ✅ Step 11: Phase 10 — Savings Goals COMPLETE
 
-Phase 9 is locked. All 260 tests passing. Ready for Phase 10.
+- **Date:** 2026-09-24
+- **Status:** Completed ✅
+- **Details:**
+  - **Database Migration (`20260924000000_006_savings_goals_schema.sql`)**:
+    - Created `savings_goals` table (`id`, `user_id`, `name`, `target_amount`, `target_date`, `icon`, `color`, `account_id`, `category_id`, `is_active`, `notes`, `created_at`, `updated_at`, `deleted_at`) with composite foreign keys, RLS (`auth.uid() = user_id`), and `handle_base_audit_fields()`.
+    - Created `goal_contributions` table (`id`, `goal_id`, `user_id`, `account_id`, `amount`, `contribution_date`, `notes`, `created_at`, `updated_at`, `deleted_at`) with composite foreign keys, RLS, and `handle_base_audit_fields()`.
+  - **Accounting Strategy**:
+    - Goal deposits and withdrawals are internal fund allocations and **do not** generate `EXPENSE` records in the `transactions` table.
+    - Goal current balance is computed dynamically as $\sum \text{contributions.amount}$.
+  - **Domain Architecture (`SavingsGoalCalculationService`)**:
+    - `SavingsGoalModel`: `savedPercentage`, `progressRatio`, `remainingAmount`, `isCompleted`, `isReached`.
+    - `GoalContributionModel`: `isDeposit`, `isWithdrawal`, `absoluteAmount`.
+    - `GoalMilestone`: 25%, 50%, 75%, 100% threshold detection.
+    - `GoalProjection`: days remaining, required monthly/weekly savings rate, deadline status.
+    - `SavingsGoalCalculationService`: pure domain calculation for projections, milestones, and portfolio summary.
+  - **Data Layer Repository (`SavingsGoalRepository`)**:
+    - Supabase CRUD operations, soft delete, deposit and withdrawal ledger entries, withdrawal limit verification guard (`amount <= currentBalance`), and net balance derivation.
+  - **Riverpod State Management**:
+    - `savingsGoalRepositoryProvider`, `savingsGoalCalculationServiceProvider`.
+    - `allSavingsGoalsProvider`, `activeSavingsGoalsProvider`, `completedSavingsGoalsProvider`, `savingsGoalsSummaryProvider`.
+    - `goalDetailProvider`, `goalContributionsProvider`, `goalProjectionProvider`, `goalMilestonesProvider`.
+    - `savingsGoalControllerProvider` (`createGoal`, `updateGoal`, `deleteGoal`, `addContribution`).
+  - **Presentation & UI**:
+    - `SavingsGoalsScreen` (`/savings-goals`): Portfolio summary overview banner, filter chips (Active, Reached, All), list of goals with animated progress bars, FAB for creating goals.
+    - `GoalDetailScreen` (`/savings-goals/:id`): Goal header, 25/50/75/100% milestone badges, required rate projection card, Add Money and Withdraw buttons, full contribution history ledger.
+    - `AddEditGoalSheet`: Form for name, target amount, target date, icon, color, default account, category, and notes.
+    - `DepositWithdrawSheet`: Form for deposits and withdrawals with account selection and amount validation.
+    - `SavingsGoalCard`: Card with progress indicators, amount saved vs target, and deadline countdown.
+    - `DashboardSavingsGoalsCard`: Integrated into Home Dashboard.
+    - `ProfileScreen`: Added "Savings Goals" tile under Data Management.
+    - `GoRouter`: Registered `/savings-goals` and `/savings-goals/:id` routes.
+  - **Testing & Verification**:
+    - Unit tests: `savings_goal_model_test.dart`, `goal_contribution_model_test.dart`, `savings_goal_calculation_service_test.dart`.
+    - Repository tests: `savings_goal_repository_test.dart`.
+    - Widget tests: `savings_goals_screen_test.dart`, `goal_detail_screen_test.dart`, `dashboard_savings_goals_card_test.dart`.
+    - Total test suite: **306/306 tests passing (100% green)**.
+    - `flutter analyze`: **0 issues found (No issues found!)**.
+  - **Phase 10 is now 100% COMPLETE & LOCKED.**
+
+---
+
+## ✅ Step 12: Phase 11 — Debt & Loan Tracker COMPLETE
+
+- **Date:** 2026-09-25
+- **Status:** Completed ✅
+- **Details:**
+  - **Database Migration (`20260925000000_007_debts_and_loans_schema.sql`)**:
+    - Created `debts` table (`id`, `user_id`, `type` [`YOU_OWE`, `YOU_ARE_OWED`], `person_name`, `contact_number`, `principal_amount`, `interest_type` [`NONE`, `PERCENTAGE`, `FIXED`], `interest_rate`, `interest_amount`, `total_repayment_amount`, `due_date`, `status` [`ACTIVE`, `SETTLED`, `CANCELLED`], `account_id`, `notes`, `created_at`, `updated_at`, `deleted_at`) with composite foreign keys, RLS (`auth.uid() = user_id`), and `handle_base_audit_fields()`.
+    - Created `debt_installments` table (`id`, `debt_id`, `user_id`, `installment_number`, `due_date`, `principal_due`, `interest_due`, `total_due`, `paid_amount`, `status` [`PENDING`, `PARTIAL`, `PAID`], `created_at`, `updated_at`, `deleted_at`) with composite foreign keys, RLS, and `handle_base_audit_fields()`.
+    - Created `debt_repayments` table (`id`, `debt_id`, `installment_id`, `user_id`, `account_id`, `amount`, `repayment_date`, `notes`, `created_at`, `updated_at`, `deleted_at`) with composite foreign keys, RLS, and `handle_base_audit_fields()`.
+  - **Accounting Strategy**:
+    - Debts and repayments are maintained in a dedicated Debt Ledger and **do not** generate ordinary `EXPENSE`/`INCOME` records in the `transactions` table. This prevents double-counting in existing Reports and Budgets.
+  - **Domain Architecture (`DebtCalculationService`)**:
+    - Percentage Interest: $\text{Principal} \times (\text{Rate} / 100)$
+    - Fixed Interest: Flat interest amount
+    - Total Repayment: $\text{Principal} + \text{Interest}$
+    - Monthly Installments: Generates split schedule across $N$ installments.
+    - Sequential Repayment Allocation: Repayments are allocated sequentially to the earliest pending or partial installment.
+    - Portfolio Summary: Computes total you are owed (assets), total you owe (liabilities), net position ($\text{Owed} - \text{Owe}$), and overdue counts.
+  - **Data Layer Repository (`DebtRepository`)**:
+    - Supabase CRUD operations, soft delete, installment schedule creation, sequential repayment allocation, and overpayment guard ($\text{amount} \le \text{remainingAmount} + 0.01$).
+  - **Riverpod State Management**:
+    - `debtRepositoryProvider`, `debtCalculationServiceProvider`.
+    - `allDebtsProvider`, `youOweDebtsProvider`, `youAreOwedDebtsProvider`, `debtSummaryProvider`, `debtDetailProvider`, `debtControllerProvider`.
+  - **Presentation & UI**:
+    - `DebtsScreen` (`/debts`): Summary header banner (Net Position, You Are Owed, You Owe, Overdue count), filter tabs (Active, You Owe, You Are Owed, Settled), debt cards, and FAB.
+    - `DebtDetailScreen` (`/debts/:id`): Overview hero card, remaining outstanding, principal & interest breakdown card, action button (Receive Payment / Record Repayment), installment schedule list, payment history ledger, edit and delete actions.
+    - `AddEditDebtSheet`: Bottom sheet with live interest preview, total expected preview, installment count, account selector, and validation.
+    - `RecordRepaymentSheet`: Bottom sheet for logging payments with outstanding balance banner and overpayment guard.
+    - `DebtCard`: Card with progress indicators, interest badges, and overdue alerts.
+    - `DashboardDebtsCard`: Integrated into Home Dashboard.
+    - `ProfileScreen`: Added "Debts & Loans" tile under Data Management.
+    - `GoRouter`: Registered `/debts` and `/debts/:id` routes.
+  - **Testing & Verification**:
+    - Unit tests: `debt_model_test.dart`, `debt_installment_model_test.dart`, `debt_repayment_model_test.dart`, `debt_calculation_service_test.dart`.
+    - Repository tests: `debt_repository_test.dart`.
+    - Widget tests: `debts_screen_test.dart`, `debt_detail_screen_test.dart`, `dashboard_debts_card_test.dart`.
+    - Total test suite: **332/332 tests passing (100% green)**.
+    - `flutter analyze`: **0 issues found (No issues found!)**.
+  - **Phase 11 is now 100% COMPLETE & LOCKED.**
+
+---
+
+## ✅ Step 13: Phase 12 — Export & Import (CSV, PDF, ZIP) COMPLETE
+
+- **Date:** 2026-09-25
+- **Status:** Completed ✅
+- **Details:**
+  - **Accounting & Multi-Ledger Integrity**:
+    - Exports strictly maintain isolated domain boundaries for Transactions Ledger (`transactions.csv`), Savings Allocation Ledger (`savings_goals.csv`, `goal_contributions.csv`), and Debt/Loan Ledger (`debts.csv`, `debt_repayments.csv`).
+    - Debt repayments and savings goal contributions are **never** commingled or converted into ordinary income/expense in reports or calculations.
+  - **Date Range Engine (`ExportDatePreset`, `ExportFilter`)**:
+    - 1 Week: 7 days ending on selected date.
+    - 1 Month: 1st of current calendar month to selected date.
+    - 3 Months: 1st of month 2 months prior to selected date.
+    - 1 Year: 1st of month 11 months prior to selected date.
+    - Custom: User-selected range (`startDate <= endDate <= today`).
+  - **Domain Services**:
+    - `CsvExportService`: Generates standard RFC 4180 CSVs, sample CSV templates, and packages full multi-ledger ZIP backups (`generateFullBackupZip`).
+    - `PdfExportService`: Generates styled multi-page PDF financial statements with executive summary boxes (Opening balance, Income, Expense, Net Cash Flow, Closing balance), transaction table, savings goals table, debts schedule table, configurable personal/business header, and dynamic footer (`Page X of Y`).
+    - `CsvImportService`: Multi-format date parser, flexible column matcher, duplicate detector against existing database records, and category/account fallback resolver.
+  - **Data Layer Repository (`ExportImportRepository`)**:
+    - Aggregates multi-ledger data, exports and triggers native OS share/save via `share_plus` / `path_provider`, provides local CSV file picking via `file_picker`, and performs batch transaction import commits.
+  - **Riverpod State Management**:
+    - `exportFilterProvider`, `pdfReportConfigProvider`, `exportControllerProvider`.
+    - `importControllerProvider` with file parsing, row selection toggles, and commit workflow.
+  - **Presentation & UI**:
+    - `ExportScreen` (`/export`): Segmented format toggle (PDF vs CSV), dataset choice chips, horizontal date preset chips, period summary banner, PDF header customization accordion, and export & share button with loading feedback.
+    - `ImportScreen` (`/import`): Tap to pick file card, sample format dialog with clipboard copy, fallback account & category dropdowns, status badge chips, interactive preview card list with checkboxes, and commit import confirmation dialog.
+    - `ProfileScreen`: Added Data Export & Backup menu tiles under Data Management.
+    - `GoRouter`: Registered `/export` and `/import` routes.
+  - **Testing & Verification**:
+    - Unit tests: `export_date_preset_test.dart`, `csv_export_service_test.dart`, `pdf_export_service_test.dart`, `csv_import_service_test.dart`.
+    - Widget tests: `export_screen_test.dart`, `import_screen_test.dart`.
+    - Total test suite: **353/353 tests passing (100% green, 0 failures, 0 regressions)**.
+    - `flutter analyze`: **0 issues found (No issues found!)**.
+  - **Phase 12 is now 100% COMPLETE & LOCKED.**
+
+---
+
+## 🎯 Next: Step 14: Phase 13 — Dashboard Customization & Widget System 🎨
+
+Phase 12 is locked. All 353 tests passing. Ready for Phase 13.
 
 
 

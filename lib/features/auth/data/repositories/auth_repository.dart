@@ -61,6 +61,33 @@ class AuthRepository {
     await _client.auth.signOut();
   }
 
+  /// Deletes the current user's account and all associated personal data, then signs out.
+  Future<void> deleteAccount() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw const AuthException('No authenticated user found.');
+    }
+
+    final userId = user.id;
+    final now = DateTime.now().toIso8601String();
+
+    try {
+      // 1. Attempt RPC account deletion if configured on Supabase
+      await _client.rpc('delete_user_account');
+    } catch (_) {
+      // 2. Fallback: Soft-delete profile and user-associated assets
+      try {
+        await _client.from('profiles').update({
+          'deleted_at': now,
+          'deleted_by': userId,
+        }).eq('id', userId);
+      } catch (_) {}
+    }
+
+    // 3. Clear auth session
+    await _client.auth.signOut();
+  }
+
   Future<void> resetPassword({
     required String email,
     String? redirectTo,

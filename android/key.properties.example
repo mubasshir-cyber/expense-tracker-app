@@ -1,0 +1,8 @@
+# Example Android Keystore signing configuration
+# Copy this file to key.properties (which is gitignored) and fill in your values
+# DO NOT commit your actual key.properties or .jks / .keystore files to version control!
+
+keyAlias=upload
+keyPassword=YOUR_KEY_PASSWORD_HERE
+storeFile=../upload-keystore.jks
+storePassword=YOUR_STORE_PASSWORD_HERE

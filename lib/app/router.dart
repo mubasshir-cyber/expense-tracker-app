@@ -10,7 +10,12 @@ import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/accounts/presentation/accounts_screen.dart';
 import '../features/budgets/presentation/budgets_screen.dart';
 import '../features/categories/presentation/categories_screen.dart';
+import '../features/dashboard/presentation/customize_dashboard_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/goals/presentation/goal_detail_screen.dart';
+import '../features/goals/presentation/savings_goals_screen.dart';
+import '../features/debts/presentation/debts_screen.dart';
+import '../features/debts/presentation/debt_detail_screen.dart';
 import '../features/notifications/presentation/notification_settings_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
@@ -20,6 +25,11 @@ import '../features/transactions/domain/models/transaction_model.dart';
 import '../features/transactions/domain/models/transaction_type.dart';
 import '../features/transactions/presentation/add_transaction_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
+import '../features/export_import/presentation/export_screen.dart';
+import '../features/export_import/presentation/import_screen.dart';
+import '../features/khata/presentation/screens/customer_detail_screen.dart';
+import '../features/khata/presentation/screens/customer_statement_screen.dart';
+import '../features/khata/presentation/screens/khata_screen.dart';
 import 'app_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
@@ -217,6 +227,98 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'notification-settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const NotificationSettingsScreen(),
+      ),
+
+      // Savings Goals Management
+      GoRoute(
+        path: '/savings-goals',
+        name: 'savings-goals',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SavingsGoalsScreen(),
+      ),
+
+      // Savings Goal Detail View
+      GoRoute(
+        path: '/savings-goals/:id',
+        name: 'savings-goal-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final goalId = state.pathParameters['id'] ?? '';
+          return GoalDetailScreen(goalId: goalId);
+        },
+      ),
+
+      // Debts & Loans Management
+      GoRoute(
+        path: '/debts',
+        name: 'debts',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DebtsScreen(),
+      ),
+
+      // Debt / Loan Detail View
+      GoRoute(
+        path: '/debts/:id',
+        name: 'debt-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final debtId = state.pathParameters['id'] ?? '';
+          return DebtDetailScreen(debtId: debtId);
+        },
+      ),
+
+      // Export Financial Data
+      GoRoute(
+        path: '/export',
+        name: 'export',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ExportScreen(),
+      ),
+
+      // Import Financial Data (CSV)
+      GoRoute(
+        path: '/import',
+        name: 'import',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ImportScreen(),
+      ),
+
+      // Dashboard Customization
+      GoRoute(
+        path: '/customize-dashboard',
+        name: 'customize-dashboard',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CustomizeDashboardScreen(),
+      ),
+
+      // Khata / Customer Ledger
+      GoRoute(
+        path: '/khata',
+        name: 'khata',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const KhataScreen(),
+      ),
+
+      // Khata Customer Detail View
+      GoRoute(
+        path: '/khata/customer/:id',
+        name: 'khata-customer-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final customerId = state.pathParameters['id'] ?? '';
+          return CustomerDetailScreen(customerId: customerId);
+        },
+      ),
+
+      // Khata Customer Statement View
+      GoRoute(
+        path: '/khata/customer/:id/statement',
+        name: 'khata-customer-statement',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final customerId = state.pathParameters['id'] ?? '';
+          return CustomerStatementScreen(customerId: customerId);
+        },
       ),
     ],
   );

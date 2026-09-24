@@ -160,5 +160,49 @@ void main() {
       // Verify Add Transaction modal / screen is shown
       expect(find.text('Add Transaction'), findsWidgets);
     });
+
+    testWidgets('tapping hamburger menu opens AppDrawer with all financial tools and modules',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 1. Verify drawer menu button is on dashboard AppBar
+      final menuButton = find.byKey(const Key('dashboard_drawer_button'));
+      expect(menuButton, findsOneWidget);
+
+      // 2. Open AppDrawer
+      await tester.tap(menuButton);
+      await tester.pumpAndSettle();
+
+      // 3. Verify Drawer Header
+      expect(find.text('Expense Tracker'), findsOneWidget);
+      expect(find.text('Financial & Khata Suite'), findsOneWidget);
+      expect(find.text('Test User'), findsWidgets);
+
+      // 4. Verify Financial Tools section items
+      expect(find.text('FINANCIAL TOOLS'), findsOneWidget);
+      expect(find.text('Loan & Debt'), findsOneWidget);
+      expect(find.text('Khata Book'), findsOneWidget);
+      expect(find.text('Savings Goals'), findsOneWidget);
+      expect(find.text('Budget Limits'), findsOneWidget);
+      expect(find.text('Recurring Payments'), findsOneWidget);
+
+      // 5. Scroll down drawer to verify Account, Settings & Sign Out items
+      await tester.scrollUntilVisible(find.text('Sign Out'), 200, scrollable: find.byType(Scrollable).last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('ACCOUNT & DATA'), findsOneWidget);
+      expect(find.text('Customize Dashboard'), findsOneWidget);
+      expect(find.text('Sign Out'), findsOneWidget);
+    });
   });
 }
+

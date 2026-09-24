@@ -72,4 +72,27 @@ class NotificationSettingsModel {
           monthlySummaryEnabled ?? this.monthlySummaryEnabled,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NotificationSettingsModel &&
+          runtimeType == other.runtimeType &&
+          userId == other.userId &&
+          budgetWarningEnabled == other.budgetWarningEnabled &&
+          budgetExceededEnabled == other.budgetExceededEnabled &&
+          recurringUpcomingEnabled == other.recurringUpcomingEnabled &&
+          recurringAutoCreatedEnabled == other.recurringAutoCreatedEnabled &&
+          spendingAlertsEnabled == other.spendingAlertsEnabled &&
+          monthlySummaryEnabled == other.monthlySummaryEnabled;
+
+  @override
+  int get hashCode =>
+      userId.hashCode ^
+      budgetWarningEnabled.hashCode ^
+      budgetExceededEnabled.hashCode ^
+      recurringUpcomingEnabled.hashCode ^
+      recurringAutoCreatedEnabled.hashCode ^
+      spendingAlertsEnabled.hashCode ^
+      monthlySummaryEnabled.hashCode;
 }

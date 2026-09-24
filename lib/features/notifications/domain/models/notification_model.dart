@@ -9,6 +9,7 @@ class NotificationModel {
     required this.title,
     required this.body,
     this.referenceId,
+    this.idempotencyKey,
     this.scheduledAt,
     this.readAt,
     this.metadata = const {},
@@ -21,6 +22,7 @@ class NotificationModel {
   final String title;
   final String body;
   final String? referenceId;
+  final String? idempotencyKey;
   final DateTime? scheduledAt;
   final DateTime? readAt;
   final Map<String, dynamic> metadata;
@@ -37,6 +39,7 @@ class NotificationModel {
       title: map['title'] as String,
       body: map['body'] as String,
       referenceId: map['reference_id'] as String?,
+      idempotencyKey: map['idempotency_key'] as String?,
       scheduledAt: map['scheduled_at'] != null
           ? DateTime.parse(map['scheduled_at'] as String)
           : null,
@@ -58,6 +61,7 @@ class NotificationModel {
       'title': title,
       'body': body,
       'reference_id': referenceId,
+      'idempotency_key': idempotencyKey,
       'scheduled_at': scheduledAt?.toIso8601String(),
       'read_at': readAt?.toIso8601String(),
       'metadata': metadata,
@@ -72,6 +76,7 @@ class NotificationModel {
     String? title,
     String? body,
     String? referenceId,
+    String? idempotencyKey,
     DateTime? scheduledAt,
     DateTime? readAt,
     bool clearReadAt = false,
@@ -85,6 +90,7 @@ class NotificationModel {
       title: title ?? this.title,
       body: body ?? this.body,
       referenceId: referenceId ?? this.referenceId,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       readAt: clearReadAt ? null : (readAt ?? this.readAt),
       metadata: metadata ?? this.metadata,
@@ -99,4 +105,29 @@ class NotificationModel {
   NotificationModel markAsUnread() {
     return copyWith(clearReadAt: true);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NotificationModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          userId == other.userId &&
+          type == other.type &&
+          title == other.title &&
+          body == other.body &&
+          referenceId == other.referenceId &&
+          idempotencyKey == other.idempotencyKey &&
+          readAt == other.readAt;
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      userId.hashCode ^
+      type.hashCode ^
+      title.hashCode ^
+      body.hashCode ^
+      (referenceId?.hashCode ?? 0) ^
+      (idempotencyKey?.hashCode ?? 0) ^
+      (readAt?.hashCode ?? 0);
 }

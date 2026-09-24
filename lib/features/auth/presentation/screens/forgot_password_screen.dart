@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/auth_error_handler.dart';
 import '../providers/auth_controller.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -40,9 +41,12 @@ class _ForgotPasswordScreenState
     final state = ref.read(authControllerProvider);
 
     if (state.hasError) {
+      final message = AuthErrorHandler.getReadableErrorMessage(state.error);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(state.error.toString()),
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;

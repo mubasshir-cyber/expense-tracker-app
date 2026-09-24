@@ -1,15 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/notifications/local_notification_provider.dart';
+import '../core/theme/app_theme.dart';
 import 'providers.dart';
 import 'router.dart';
-import '../core/theme/app_theme.dart';
 
-/// Root application widget configuring routing and reactive theme mode.
-class ExpenseTrackerApp extends ConsumerWidget {
+/// Root application widget configuring routing, reactive theme mode, and notification handling.
+class ExpenseTrackerApp extends ConsumerStatefulWidget {
   const ExpenseTrackerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExpenseTrackerApp> createState() => _ExpenseTrackerAppState();
+}
+
+class _ExpenseTrackerAppState extends ConsumerState<ExpenseTrackerApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final notifService = ref.read(localNotificationServiceProvider);
+      final router = ref.read(routerProvider);
+      notifService.initialize(
+        onSelectRoute: (route) {
+          router.push(route);
+        },
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final router = ref.watch(routerProvider);
 

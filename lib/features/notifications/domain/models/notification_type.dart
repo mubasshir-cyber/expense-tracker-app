@@ -11,6 +11,9 @@ enum NotificationType {
   recurringCompleted('RECURRING_COMPLETED', 'Recurring Transaction'),
   spendingAlert('SPENDING_ALERT', 'Spending Alert'),
   monthlySummary('MONTHLY_SUMMARY', 'Monthly Summary'),
+  debtDue('DEBT_DUE', 'Loan Due'),
+  goalMilestone('GOAL_MILESTONE', 'Savings Milestone'),
+  khataDue('KHATA_DUE', 'Khata Reminder'),
   system('SYSTEM', 'System');
 
   const NotificationType(this.value, this.label);
@@ -34,6 +37,12 @@ enum NotificationType {
         return NotificationType.spendingAlert;
       case 'MONTHLY_SUMMARY':
         return NotificationType.monthlySummary;
+      case 'DEBT_DUE':
+        return NotificationType.debtDue;
+      case 'GOAL_MILESTONE':
+        return NotificationType.goalMilestone;
+      case 'KHATA_DUE':
+        return NotificationType.khataDue;
       case 'SYSTEM':
       default:
         return NotificationType.system;
@@ -56,6 +65,12 @@ enum NotificationType {
         return LucideIcons.trendingUp;
       case NotificationType.monthlySummary:
         return LucideIcons.barChart3;
+      case NotificationType.debtDue:
+        return LucideIcons.landmark;
+      case NotificationType.goalMilestone:
+        return LucideIcons.target;
+      case NotificationType.khataDue:
+        return LucideIcons.bookOpen;
       case NotificationType.system:
         return LucideIcons.info;
     }
@@ -77,6 +92,12 @@ enum NotificationType {
         return const Color(0xFFEC4899); // Pink
       case NotificationType.monthlySummary:
         return AppColors.primary; // Blue
+      case NotificationType.debtDue:
+        return const Color(0xFFD97706); // Amber-700
+      case NotificationType.goalMilestone:
+        return const Color(0xFF10B981); // Emerald
+      case NotificationType.khataDue:
+        return const Color(0xFF6366F1); // Indigo
       case NotificationType.system:
         return const Color(0xFF6B7280); // Gray
     }

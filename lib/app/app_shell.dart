@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// The root application shell holding the bottom navigation bar and global action button.
+import 'widgets/app_drawer.dart';
+
+/// The root application shell holding the bottom navigation bar, side drawer, and global action button.
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -21,7 +23,9 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       body: navigationShell,
+
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add Transaction',
         onPressed: () => context.push('/add-transaction'),

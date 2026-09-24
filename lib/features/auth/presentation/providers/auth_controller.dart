@@ -52,6 +52,14 @@ class AuthController extends AsyncNotifier<void> {
     );
   }
 
+  Future<void> deleteAccount() async {
+    state = const AsyncLoading();
+
+    state = await AsyncValue.guard(
+      _repository.deleteAccount,
+    );
+  }
+
   Future<void> resetPassword({
     required String email,
     String? redirectTo,

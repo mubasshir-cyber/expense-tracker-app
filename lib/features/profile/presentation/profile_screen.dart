@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../auth/presentation/providers/auth_controller.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
 import '../domain/models/user_profile.dart';
 import 'providers/profile_repository_provider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -244,7 +246,7 @@ class ProfileScreen extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.track_changes_outlined,
                       color: AppColors.primary),
-                  title: const Text('Budgets & Spending Limits'),
+                  title: const Text('Budget Limits'),
                   subtitle: const Text('Overall & category monthly caps'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/budgets'),
@@ -253,10 +255,37 @@ class ProfileScreen extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.repeat_rounded,
                       color: AppColors.primary),
-                  title: const Text('Recurring Transactions'),
+                  title: const Text('Recurring Payments'),
                   subtitle: const Text('Subscriptions, bills & schedules'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/recurring'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.savings_outlined,
+                      color: AppColors.primary),
+                  title: const Text('Savings Goals'),
+                  subtitle: const Text('Track targets, deposits & milestones'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/savings-goals'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.swap_horiz_rounded,
+                      color: AppColors.primary),
+                  title: const Text('Loan & Debt'),
+                  subtitle: const Text('Track money owed, lent, interest & installments'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/debts'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.menu_book_outlined,
+                      color: AppColors.primary),
+                  title: const Text('Khata Book'),
+                  subtitle: const Text('Customer ledger, credits & statements'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/khata'),
                 ),
               ],
             ),
@@ -264,7 +293,38 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
 
-        // ── 4. Alerts & Notifications ──────────────────────────────────────
+        // ── 4. Preferences ────────────────────────────────────────────────
+        Text(
+          'PREFERENCES',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.dashboard_customize_outlined,
+                      color: AppColors.primary),
+                  title: const Text('Dashboard Customization'),
+                  subtitle: const Text('Reorder widgets & manage visibility'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/customize-dashboard'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // ── 5. Alerts & Notifications ──────────────────────────────────────
         Text(
           'ALERTS & NOTIFICATIONS',
           style: theme.textTheme.labelMedium?.copyWith(
@@ -302,9 +362,105 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 20),
+
+        // ── 5. Data Export & Backup ─────────────────────────────────────────
+        Text(
+          'DATA EXPORT & BACKUP',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.file_download_outlined,
+                      color: AppColors.primary),
+                  title: const Text('Export Financial Data'),
+                  subtitle: const Text('Export CSV, customized PDF reports or ZIP backup'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/export'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.file_upload_outlined,
+                      color: AppColors.primary),
+                  title: const Text('Import Transactions'),
+                  subtitle: const Text('Import bank statements or CSV data'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/import'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // ── 6. Legal & Support ─────────────────────────────────────────────
+        Text(
+          'ABOUT & LEGAL',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(LucideIcons.shieldCheck, color: AppColors.primary, size: 20),
+                  title: const Text('Privacy Policy'),
+                  subtitle: const Text('Read how your data is protected'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _showPolicyDialog(
+                    context,
+                    title: 'Privacy Policy',
+                    content: 'Expense Tracker respects your privacy. All financial data is encrypted and tied exclusively to your authenticated account via Row Level Security (RLS). We never sell your data or share it with third-party advertisers.\n\nFor full details, visit:\n${AppConfig.privacyPolicyUrl}',
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.fileText, color: AppColors.primary, size: 20),
+                  title: const Text('Terms & Conditions'),
+                  subtitle: const Text('Terms of service and usage guidelines'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _showPolicyDialog(
+                    context,
+                    title: 'Terms & Conditions',
+                    content: 'By using Expense Tracker, you agree to track your personal and business finances responsibly. The app provides tools for expense management, budgeting, debt tracking, and customer ledgers.\n\nFor full terms, visit:\n${AppConfig.termsAndConditionsUrl}',
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.info, color: AppColors.primary, size: 20),
+                  title: const Text('App Version'),
+                  subtitle: const Text(AppConfig.fullVersionString),
+                  trailing: const Text(
+                    'Up to date',
+                    style: TextStyle(fontSize: 12, color: AppColors.credit, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
 
-        // ── 5. Sign Out Button ─────────────────────────────────────────────
+        // ── 7. Sign Out Button ─────────────────────────────────────────────
         FilledButton.tonalIcon(
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -315,8 +471,102 @@ class ProfileScreen extends ConsumerWidget {
           icon: const Icon(Icons.logout_rounded),
           label: const Text('Sign Out'),
         ),
+        const SizedBox(height: 12),
+
+        // ── 8. Delete Account Button ───────────────────────────────────────
+        OutlinedButton.icon(
+          key: const Key('delete_account_button'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.error,
+            side: const BorderSide(color: AppColors.error),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+          onPressed: () => _confirmAccountDeletion(context, ref),
+          icon: const Icon(LucideIcons.trash2, size: 18),
+          label: const Text('Delete Account & Data'),
+        ),
+        const SizedBox(height: 16),
       ],
     );
+  }
+
+  void _showPolicyDialog(BuildContext context, {required String title, required String content}) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Text(content, style: const TextStyle(fontSize: 14, height: 1.4)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmAccountDeletion(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(LucideIcons.alertTriangle, color: AppColors.error, size: 24),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Delete Account?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action is irreversible. All your financial data, accounts, categories, budgets, debts, savings goals, and customer Khata records will be permanently removed.',
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'You can also request deletion at:\n${AppConfig.accountDeletionUrl}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: const Text('Delete Everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Deleting your account...'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      await ref.read(authControllerProvider.notifier).deleteAccount();
+    }
   }
 
   Widget _buildFallbackAvatar(String name, String email) {

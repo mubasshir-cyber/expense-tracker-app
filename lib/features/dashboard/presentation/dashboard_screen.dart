@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../app/widgets/app_drawer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -13,12 +14,10 @@ import '../../budgets/presentation/providers/budget_providers.dart';
 import '../../notifications/presentation/providers/notification_providers.dart';
 import '../../notifications/presentation/widgets/notification_badge_icon.dart';
 import '../../recurring/presentation/providers/recurring_providers.dart';
-import 'widgets/balance_card.dart';
-import 'widgets/dashboard_budget_card.dart';
-import 'widgets/dashboard_upcoming_payments_card.dart';
-import 'widgets/monthly_summary_card.dart';
-import 'widgets/quick_actions.dart';
-import 'widgets/recent_transactions.dart';
+import '../../goals/presentation/providers/goal_providers.dart';
+import '../../debts/presentation/providers/debt_providers.dart';
+import 'providers/dashboard_layout_provider.dart';
+import 'widgets/dashboard_widget_resolver.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -46,6 +45,14 @@ class DashboardScreen extends ConsumerWidget {
     ref.invalidate(upcomingRecurringProvider);
     ref.invalidate(allRecurringTransactionsProvider);
     ref.invalidate(notificationsListProvider);
+    ref.invalidate(activeSavingsGoalsProvider);
+    ref.invalidate(allSavingsGoalsProvider);
+    ref.invalidate(completedSavingsGoalsProvider);
+    ref.invalidate(savingsGoalsSummaryProvider);
+    ref.invalidate(allDebtsProvider);
+    ref.invalidate(youOweDebtsProvider);
+    ref.invalidate(youAreOwedDebtsProvider);
+    ref.invalidate(debtSummaryProvider);
   }
 
   @override
@@ -58,6 +65,7 @@ class DashboardScreen extends ConsumerWidget {
     final accountsAsync = ref.watch(accountsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final profileAsync = ref.watch(userProfileProvider);
+    final dashboardLayout = ref.watch(dashboardLayoutProvider);
 
     // Check loading state
     final isLoading = overallSummaryAsync.isLoading ||
@@ -74,7 +82,16 @@ class DashboardScreen extends ConsumerWidget {
         categoriesAsync.hasError;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            key: const Key('dashboard_drawer_button'),
+            icon: const Icon(LucideIcons.menu, size: 22),
+            tooltip: 'Open Menu',
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -188,64 +205,114 @@ class DashboardScreen extends ConsumerWidget {
           final totalExpenses = overallSummary?.totalExpense ?? 0.0;
           final netBalance = totalOpeningBalance + (overallSummary?.netBalance ?? 0.0);
 
+          final visibleWidgets = dashboardLayout.visibleWidgets;
+
           return RefreshIndicator(
             onRefresh: () async => _refreshAll(ref),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 1. Current Balance Card
-                  BalanceCard(
-                    netBalance: netBalance,
-                    totalCredits: totalCredits,
-                    totalExpenses: totalExpenses,
-                    currencySymbol: currencySymbol,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 2. This Month Breakdown
-                  if (currentMonthSummary != null)
-                    MonthlySummaryCard(
-                      summary: currentMonthSummary,
-                      currencySymbol: currencySymbol,
+            child: visibleWidgets.isEmpty
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.06)
+                                          : Colors.black.withValues(alpha: 0.04),
+                                    ),
+                                    child: Icon(
+                                      LucideIcons.layoutDashboard,
+                                      size: 48,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Text(
+                                    'Your dashboard is empty.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'You have hidden all dashboard cards. Choose which widgets to show to get a full view of your finances.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  FilledButton.icon(
+                                    key: const Key('empty_dashboard_customize_button'),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () => context.push('/customize-dashboard'),
+                                    icon: const Icon(LucideIcons.slidersHorizontal, size: 18),
+                                    label: const Text(
+                                      'Customize your dashboard',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (int i = 0; i < visibleWidgets.length; i++) ...[
+                          buildDashboardWidget(
+                            type: visibleWidgets[i].type,
+                            context: context,
+                            netBalance: netBalance,
+                            totalCredits: totalCredits,
+                            totalExpenses: totalExpenses,
+                            currencySymbol: currencySymbol,
+                            currentMonthSummary: currentMonthSummary,
+                            recentTransactions: recentTransactions,
+                            categories: categories,
+                            accounts: accounts,
+                            onAddExpense: () => context.push('/add-transaction'),
+                            onAddCredit: () => context.push('/add-transaction'),
+                            onSeeAllTransactions: () => context.go('/transactions'),
+                          ),
+                          if (i < visibleWidgets.length - 1)
+                            const SizedBox(height: 16)
+                          else
+                            const SizedBox(height: 32),
+                        ],
+                      ],
                     ),
-                  const SizedBox(height: 16),
-
-                  // 3. Budgets & Spending Limits
-                  DashboardBudgetCard(
-                    currencySymbol: currencySymbol,
                   ),
-                  const SizedBox(height: 16),
-
-                  // 4. Upcoming Recurring Payments
-                  DashboardUpcomingPaymentsCard(
-                    currencySymbol: currencySymbol,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 5. Quick Actions
-                  QuickActions(
-                    onAddExpense: () => context.push('/add-transaction'),
-                    onAddCredit: () => context.push('/add-transaction'),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 6. Recent Transactions
-                  RecentTransactions(
-                    transactions: recentTransactions,
-                    categories: categories,
-                    accounts: accounts,
-                    currencySymbol: currencySymbol,
-                    onSeeAll: () => context.go('/transactions'),
-                    onAddExpense: () => context.push('/add-transaction'),
-                    onAddCredit: () => context.push('/add-transaction'),
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
           );
         },
       ),
